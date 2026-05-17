@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, maximum-scale=2.0, minimum-scale=0.5">
+  <title>卡皮巴拉打地鼠 · 6x6 治愈系</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: linear-gradient(145deg, #2b5a3a 0%, #1e3b28 100%);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-family: 'Segoe UI', 'Quicksand', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+      padding: 20px;
+      margin: 0;
+      position: relative;
+    }
+
+    /* 装饰草地纹理 */
+    body::before {
+      content: "";
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: radial-gradient(circle at 30% 40%, rgba(255, 255, 200, 0.08) 0%, transparent 25%),
+                        radial-gradient(circle at 70% 80%, rgba(200, 255, 200, 0.1) 0%, transparent 30%);
+      pointer-events: none;
+    }
+
+    .game-wrapper {
+      background: rgba(255, 245, 220, 0.2);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-radius: 70px;
+      padding: 30px 35px 40px;
+      box-shadow: 0 30px 50px rgba(0, 0, 0, 0.5), inset 0 2px 10px rgba(255, 255, 200, 0.6);
+      border: 1px solid rgba(255, 255, 180, 0.4);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      transition: all 0.2s ease;
+    }
+
+    .header {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 25px;
+      padding: 0 15px;
+    }
+
+    .score-panel {
+      background: #fdf8ed;
+      border-radius: 100px;
+      padding: 12px 28px;
+      box-shadow: 0 10px 15px rgba(0,0,0,0.3), inset 0 2px 8px white;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border: 2px solid #d4a373;
+    }
+
+    .score-icon {
+      font-size: 2rem;
+      filter: drop-shadow(0 4px 4px rgba(0,0,0,0.2));
+    }
+
+    .score-text {
+      font-size: 2.4rem;
+      font-weight: 700;
+      color: #5e3e1c;
+      background: #fff5e6;
+      padding: 0 10px;
+      border-radius: 40px;
+      min-width: 80px;
+      text-align: center;
+      letter-spacing: 1px;
+    }
+
+    .restart-btn {
+      background: #ffd59e;
+      border: none;
+      border-radius: 60px;
+      padding: 12px 28px;
+      font-size: 1.3rem;
+      font-weight: bold;
+      color: #4b2e1a;
+      background: linear-gradient(180deg, #ffecd2 0%, #f7c27a 100%);
+      box-shadow: 0 10px 10px rgba(0,0,0,0.25), inset 0 2px 10px white;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border: 2px solid #bc8c4b;
+      transition: all 0.15s ease;
+      letter-spacing: 1px;
+    }
+
+    .restart-btn:hover {
+      transform: scale(1.03);
+      background: linear-gradient(180deg, #fff3e0 0%, #fab758 100%);
+      box-shadow: 0 12px 15px rgba(0,0,0,0.35), inset 0 2px 12px white;
+    }
+
+    .restart-btn:active {
+      transform: scale(0.96);
+      box-shadow: 0 5px 8px rgba(0,0,0,0.4);
+    }
+
+    .grid-container {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 14px;
+      background: rgba(139, 90, 43, 0.5);
+      padding: 24px;
+      border-radius: 65px;
+      backdrop-filter: blur(8px);
+      background: rgba(210, 160, 100, 0.35);
+      box-shadow: inset 0 0 25px rgba(0,0,0,0.5), 0 20px 30px rgba(0,0,0,0.6);
+      border: 2px solid #b48b5a;
+      margin-bottom: 15px;
+    }
+
+    .cell {
+      aspect-ratio: 1 / 1;
+      width: 100%;
+      min-width: 60px;
+      background: #7b5c3e;
+      background-image: radial-gradient(circle at 30% 35%, #a9845c, #5a3e2b);
+      border-radius: 50%;
+      box-shadow: inset 0 -12px 0 rgba(0,0,0,0.5), 0 8px 12px rgba(0,0,0,0.5), inset 0 4px 10px rgba(255,255,200,0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.08s ease;
+      position: relative;
+      border: 2px solid #ebc28e;
+    }
+
+    /* 地鼠洞穴效果 */
+    .cell:hover {
+      box-shadow: inset 0 -10px 0 rgba(0,0,0,0.6), 0 8px 15px rgba(0,0,0,0.7), inset 0 6px 14px rgba(255,255,180,0.7);
+    }
+
+    .cell:active {
+      transform: scale(0.92);
+    }
+
+    /* 卡皮巴拉 (地鼠) 样式 */
+    .capybara {
+      font-size: 2.8rem;
+      line-height: 1;
+      filter: drop-shadow(0 8px 6px rgba(0,0,0,0.5));
+      transform: translateY(-4px);
+      transition: all 0.05s;
+      user-select: none;
+      pointer-events: none;  /* 点击由cell处理 */
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* 击中动画 (通过class触发, 短暂变红) */
+    .cell.hit-effect {
+      background-image: radial-gradient(circle at 30% 35%, #f8b584, #c45a2c);
+      box-shadow: inset 0 -8px 0 rgba(0,0,0,0.6), 0 0 20px gold, inset 0 4px 12px white;
+      transition: 0.06s;
+    }
+
+    .message-area {
+      margin-top: 10px;
+      height: 30px;
+      font-size: 1.3rem;
+      font-weight: bold;
+      color: #ffefc8;
+      text-shadow: 2px 2px 0 #3b2b1a;
+      letter-spacing: 1px;
+    }
+
+    @media (max-width: 600px) {
+      .grid-container {
+        gap: 8px;
+        padding: 14px;
+      }
+      .cell {
+        min-width: 40px;
+      }
+      .capybara {
+        font-size: 2rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="game-wrapper">
+    <div class="header">
+      <div class="score-panel">
+        <span class="score-icon">🦫</span>
+        <span class="score-text" id="scoreDisplay">0</span>
+      </div>
+      <button class="restart-btn" id="restartButton">
+        <span>↺</span> 新的一局
+      </button>
+    </div>
+
+    <!-- 6x6 网格 -->
+    <div class="grid-container" id="gridContainer"></div>
+    <div class="message-area" id="message"></div>
+  </div>
+
+  <script>
+    (function() {
+      // ---------- 游戏配置 ----------
+      const ROWS = 6;
+      const COLS = 6;
+      const TOTAL_CELLS = ROWS * COLS;
+      
+      // 游戏状态
+      let score = 0;
+      let activeCapybaraIndex = -1;          // 当前有卡皮巴拉的格子索引 (只有一个地鼠)
+      let gameActive = true;
+      let timerInterval = null;
+      let hideTimeout = null;
+      let moveInterval = null;
+      
+      // 速度控制 (毫秒)
+      const BASE_MOVE_INTERVAL = 1500;        // 地鼠移动间隔 (会随分数变快)
+      const MIN_MOVE_INTERVAL = 900;
+      const HIDE_DELAY = 1000;                // 地鼠自动消失时间 (小于移动间隔, 保证可见)
+      
+      // DOM 元素
+      const gridEl = document.getElementById('gridContainer');
+      const scoreEl = document.getElementById('scoreDisplay');
+      const messageEl = document.getElementById('message');
+      const restartBtn = document.getElementById('restartButton');
+      
+      // 存储所有 cell 元素
+      let cells = [];
+      
+      // ---------- 工具函数 ----------
+      function updateScoreUI() {
+        scoreEl.textContent = score;
+      }
+      
+      // 显示短暂消息
+      function setMessage(text, isGood = true) {
+        messageEl.textContent = text;
+        messageEl.style.color = isGood ? '#ffefc8' : '#ffb4a2';
+        if (text) {
+          setTimeout(() => {
+            if (messageEl.textContent === text) {
+              messageEl.textContent = '';
+            }
+          }, 1000);
+        }
+      }
+      
+      // 清除所有地鼠 (从格子中移除卡皮巴拉)
+      function clearAllCapybaras() {
+        cells.forEach(cell => {
+          const capy = cell.querySelector('.capybara');
+          if (capy) {
+            capy.remove();
+          }
+          cell.classList.remove('hit-effect');
+        });
+      }
+      
+      // 在指定索引显示卡皮巴拉
+      function showCapybaraAtIndex(index) {
+        if (!gameActive) return;
+        // 安全检查索引
+        if (index < 0 || index >= TOTAL_CELLS) return;
+        
+        // 先清除所有现有地鼠 (保证只有一个)
+        clearAllCapybaras();
+        
+        const cell = cells[index];
+        if (!cell) return;
+        
+        // 创建卡皮巴拉元素
+        const capyDiv = document.createElement('div');
+        capyDiv.className = 'capybara';
+        // 使用卡皮巴拉表情+可爱元素 (不同表情随机增加趣味)
+        const capyEmojis = ['🦫', '🦫', '🦫', '🐹', '🦦']; // 大部分卡皮巴拉，混一点相似可爱
+        const randomEmoji = capyEmojis[Math.floor(Math.random() * capyEmojis.length)];
+        capyDiv.textContent = randomEmoji;
+        
+        // 附加一点小装饰：偶尔加个小星星 (纯视觉)
+        if (Math.random() < 0.25) {
+          capyDiv.textContent = '🦫✨';
+        }
+        
+        cell.appendChild(capyDiv);
+        activeCapybaraIndex = index;
+        
+        // 自动消失定时器：如果地鼠没被打中，一段时间后消失
+        if (hideTimeout) clearTimeout(hideTimeout);
+        hideTimeout = setTimeout(() => {
+          // 只有当游戏活跃且地鼠还在同一位置才清除
+          if (gameActive && activeCapybaraIndex === index) {
+            // 地鼠逃跑，不加分，但移除
+            clearAllCapybaras();
+            activeCapybaraIndex = -1;
+            // 显示小提示
+            setMessage('💨 卡皮巴拉溜走了...', false);
+          }
+        }, HIDE_DELAY);
+      }
+      
+      // 随机移动地鼠到新位置 (不与当前位置相同)
+      function moveCapybara() {
+        if (!gameActive) return;
+        
+        // 如果游戏不活跃或格子未初始化，停止
+        if (cells.length === 0) return;
+        
+        let newIndex;
+        // 如果有当前地鼠，避免相同位置；否则随机
+        if (activeCapybaraIndex !== -1 && TOTAL_CELLS > 1) {
+          do {
+            newIndex = Math.floor(Math.random() * TOTAL_CELLS);
+          } while (newIndex === activeCapybaraIndex);
+        } else {
+          newIndex = Math.floor(Math.random() * TOTAL_CELLS);
+        }
+        
+        showCapybaraAtIndex(newIndex);
+      }
+      
+      // 根据分数计算移动速度
+      function getMoveInterval() {
+        // 分数越高越快 (但有限制)
+        const reduction = Math.floor(score / 5) * 20; // 每5分加快20ms
+        const interval = Math.max(MIN_MOVE_INTERVAL, BASE_MOVE_INTERVAL - reduction);
+        return interval;
+      }
+      
+      // 重启移动定时器 (根据当前速度)
+      function restartMoveInterval() {
+        if (moveInterval) clearInterval(moveInterval);
+        if (!gameActive) return;
+        
+        const intervalTime = getMoveInterval();
+        moveInterval = setInterval(() => {
+          moveCapybara();
+        }, intervalTime);
+      }
+      
+      // 处理点击格子 (打地鼠)
+      function handleCellClick(index) {
+        return function(event) {
+          if (!gameActive) {
+            setMessage('⏳ 游戏已结束，请按“新的一局”', false);
+            return;
+          }
+          
+          const cell = cells[index];
+          // 检查这个格子是否包含卡皮巴拉 (即是否有 .capybara 子元素)
+          const hasCapybara = cell.querySelector('.capybara') !== null;
+          
+          if (hasCapybara && activeCapybaraIndex === index) {
+            // ---------- 打中地鼠！ ----------
+            // 加分
+            score++;
+            updateScoreUI();
+            
+            // 播放击中特效
+            cell.classList.add('hit-effect');
+            setTimeout(() => {
+              cell.classList.remove('hit-effect');
+            }, 150);
+            
+            // 移除地鼠
+            clearAllCapybaras();
+            activeCapybaraIndex = -1;
+            
+            // 清除自动消失定时器 (已经移除，避免冲突)
+            if (hideTimeout) {
+              clearTimeout(hideTimeout);
+              hideTimeout = null;
+            }
+            
+            // 显示成功消息
+            setMessage('🎯 打中啦！ +1', true);
+            
+            // 重要：重新调整移动间隔（因为分数变了，速度可能加快）
+            restartMoveInterval();
+            
+            // 立即生成新的地鼠 (让游戏连续有趣)
+            // 但需要极短延迟，避免与移动定时器冲突产生双地鼠
+            if (gameActive) {
+              // 清除可能正在等待的移动定时器，然后手动移动一次
+              if (moveInterval) clearInterval(moveInterval);
+              // 立刻移动生成新地鼠
+              moveCapybara();
+              // 重新启动间隔
+              restartMoveInterval();
+            }
+          } else {
+            // 未打中：空点击
+            setMessage('🍃 这里没有卡皮巴拉~', false);
+            // 可轻微惩罚？不加分不扣分，只是提示
+          }
+        };
+      }
+      
+      // 构建网格
+      function buildGrid() {
+        gridEl.innerHTML = '';
+        cells = [];
+        
+        for (let i = 0; i < TOTAL_CELLS; i++) {
+          const cell = document.createElement('div');
+          cell.className = 'cell';
+          cell.setAttribute('data-index', i);
+          // 绑定点击事件
+          cell.addEventListener('click', handleCellClick(i));
+          gridEl.appendChild(cell);
+          cells.push(cell);
+        }
+      }
+      
+      // 重置游戏状态
+      function resetGame() {
+        // 停用所有定时器
+        if (moveInterval) {
+          clearInterval(moveInterval);
+          moveInterval = null;
+        }
+        if (hideTimeout) {
+          clearTimeout(hideTimeout);
+          hideTimeout = null;
+        }
+        
+        // 重置变量
+        gameActive = true;
+        score = 0;
+        activeCapybaraIndex = -1;
+        updateScoreUI();
+        
+        // 清除网格中的地鼠和特效
+        clearAllCapybaras();
+        
+        // 清空消息
+        messageEl.textContent = '';
+        
+        // 重新开始移动地鼠
+        if (gameActive) {
+          // 先随机显示第一个地鼠
+          moveCapybara();
+          // 启动移动间隔
+          restartMoveInterval();
+        }
+      }
+      
+      // 游戏结束 (例如可手动调用，但这里保留扩展；目前无结束条件，无限玩)
+      function endGame() {
+        gameActive = false;
+        if (moveInterval) {
+          clearInterval(moveInterval);
+          moveInterval = null;
+        }
+        if (hideTimeout) {
+          clearTimeout(hideTimeout);
+          hideTimeout = null;
+        }
+        clearAllCapybaras();
+        activeCapybaraIndex = -1;
+        setMessage('🏁 游戏暂停', false);
+      }
+      
+      // 初始化事件监听
+      function bindEvents() {
+        restartBtn.addEventListener('click', () => {
+          resetGame();
+        });
+      }
+      
+      // 页面卸载清理定时器
+      window.addEventListener('beforeunload', () => {
+        if (moveInterval) clearInterval(moveInterval);
+        if (hideTimeout) clearTimeout(hideTimeout);
+      });
+      
+      // 启动一切
+      function init() {
+        buildGrid();
+        bindEvents();
+        // 默认开始游戏
+        resetGame();
+      }
+      
+      // 开始执行
+      init();
+    })();
+  </script>
+</body>
+</html>
